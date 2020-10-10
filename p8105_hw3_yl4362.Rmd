@@ -72,3 +72,96 @@ instacart %>%
   ) %>%
   knitr::kable()
 ```
+
+## Problem 2
+
+1) Load, tidy, and otherwise wrangle the data. Your final dataset should include all originally observed variables and values; have useful variable names; include a weekday vs weekend variable; and encode data with reasonable variable classes. Describe the resulting dataset (e.g. what variables exist, how many observations, etc).
+```{r}
+accel_data = 
+  read_csv("./data/accel_data.csv") %>%
+  janitor::clean_names() %>%
+  pivot_longer(
+    cols = starts_with("activity"),
+    names_to = "activity_count",
+    names_prefix = "activity.",
+    values_to = "minute_value") %>%
+  mutate(
+    weekday_vs_weekend = case_when(
+           day == "Monday" ~ "weekday",
+           day == "Tuesday" ~ "weekday",
+           day == "Wednesday" ~ "weekday",
+           day == "Thursday" ~ "weekday",
+           day == "Friday" ~ "weekday",
+           day == "Saturday"~ "weekend",
+           day == "Sunday"~ "weekend"),
+    activity_count = as.numeric(activity_count)
+    )
+```
+
+This dataset contains `r nrow(accel_data)` observations and `r ncol(accel_data)` variables.
+
+There are activity variables - count, value in a minute, day, weekday vs weekend, day ID, week ID, day of the week.
+
+2) Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals. Are any trends apparent?
+
+```{r}
+accel_data %>% 
+  group_by(day_id) %>%
+  summarize(total_activity = sum(minute_value)) %>%
+  knitr::kable()
+```
+
+I can tell from the table that in the day 4, 10, 16, 29, there are over 600,000 total activity. And in the day 24 and 31, the total activity is the least.
+
+3) Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
+
+```{r}
+accel_data %>%
+  ggplot(aes(x = activity_count, y = minute_value, color = day)) +
+  geom_point(alpha = .3) + 
+  geom_smooth(se = FALSE)
+```
+
+From the plot, I notified that the activity arises as the activity_count goes up. Friday and Sunday have the most high minute_value.
+
+## Problem 3
+
+1) Do some data cleaning. Create separate variables for year, month, and day. Ensure observations for temperature, precipitation, and snowfall are given in reasonable units. For snowfall, what are the most commonly observed values? Why?
+```{r}
+data("ny_noaa")
+
+ny_noaa %>%
+  mutate(year = lubridate::year(date), 
+         month = lubridate::month(date), 
+         day = lubridate::day(date)) %>%
+  mutate(
+    tmax = as.numeric(tmax) / 10,
+    tmin = as.numeric(tmin) / 10,
+    year = as.integer(year),
+    month = as.integer(month))
+
+ny_noaa %>%
+  count(snow) %>%
+  arrange(desc(n))
+```
+
+For snowfall, the most commonly observed values are '0' and 'NA'. I think it is because the days without snowfall in a year is much more than the days with snowfall.
+
+2) Make a two-panel plot showing the average max temperature in January and in July in each station across years. Is there any observable / interpretable structure? Any outliers?
+
+```{r}
+ny_noaa %>%
+  filter(month == '1' | '7') %>%
+  group_by(id, month) %>%
+  ggplot(aes(x = year, y = mean(tmax), color = month)) +
+  geom_point() + 
+  geom_smooth(se = FALSE)
+```
+
+I cannot run out the plot because it cannot find the month column.
+
+3) Make a two-panel plot showing (i) tmax vs tmin for the full dataset (note that a scatterplot may not be the best option); and (ii) make a plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year.
+
+This dataset contains `r nrow(ny_noaa)` observations and `r ncol(ny_noaa)` variables.
+
+There are activity variables - count, value in a minute, day, weekday vs weekend, day ID, week ID, day of the week.
